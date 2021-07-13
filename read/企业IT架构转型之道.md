@@ -62,7 +62,7 @@
 4. 业务改造： 下游写流量的拦截、防止污染BI报表、线上推荐算法等
 5. 数据平台：基础数据准备、模型构造、链路构造
 6. 流量平台：压测控制中心、压测引擎
-7. 影子表：
+7. 影子表
 8. 中间件：压测流量的标识
 9. 安全机制
 
@@ -210,7 +210,7 @@ public class D {
 
 ### [主流框架适配](https://github.com/alibaba/Sentinel/wiki/%E4%B8%BB%E6%B5%81%E6%A1%86%E6%9E%B6%E7%9A%84%E9%80%82%E9%85%8D)
 
-其他几个框架先忽略，主要学习RocketMQ中的限流思想、适配的框架主要有：
+其他几个框架先忽略，主要学习RocketMQ中的限流思想。适配的框架主要有：
 
 Spring Boot/Spring Cloud / Web Servlet / Apache Dubbo /gPRC / Apache HttpClient / OkHttp / Reactor / Spring Cloud Gateway
 
@@ -419,3 +419,24 @@ ToDo
 https://www.cnblogs.com/luozhiyun/tag/Sentinel/
 
 ToDo
+
+
+
+# 其他
+
+## azure
+
+[Iot Hub配额和节流](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-quotas-throttling )
+
+ IoT Hub 处理突发流量的方法： 突发流量请求的前几个会被立即处理，后续请求会被放进队列，并以限制速率处理。流量整形。 如果违规继续，最终队列将填满，IoT Hub返回429 ThrottlingException拒绝请求。
+
+
+
+# 结论
+
+Sentinel比较适用于无状态请求，例如网站用户的业务请求（调用RESTful API）。在我们物联网数据处理场景中，不是很适用。
+
+流量整形的匀速模式，没有办法对突发数据进行缓存，不能满足我们‘先缓存，漫处理’，保证数据（突发性数据前部分）不丢失的场景。
+
+放弃该方案。 Sad！
+
