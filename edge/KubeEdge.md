@@ -205,6 +205,7 @@ kubectl get secret -nkubeedge tokensecret -o json # 找到token 加入到edgecor
 
 ```
 ./edgecore --minconfig > edgecore.yaml
+./edgecore --defaultconfig > edgecore.yaml
 ```
 
 
@@ -276,6 +277,20 @@ edgecore --config edgecore.yaml
 
 
 
+在cloud端查看
+
+```sh
+root@node38:/home/anxin# kubectl get no 
+NAME     STATUS   ROLES        AGE    VERSION
+node35   Ready    agent,edge   334d   v1.19.3-kubeedge-v1.7.1
+node37   Ready    <none>       334d   v1.18.6
+node38   Ready    master       334d   v1.18.6
+```
+
+
+
+
+
 ##### 常见报错
 
 1. Error: token credentials are in the wrong format
@@ -322,3 +337,615 @@ cd /root
 openssl rand -writerand .rnd
 ```
 
+
+
+### 在Raspberry Pi 上安装
+
+#### 安装Lite系统
+
+https://downloads.raspberrypi.org/raspios_lite_armhf/images/raspios_lite_armhf-2021-05-28/2021-05-07-raspios-buster-armhf-lite.zip
+
+设置网络
+
+```shell
+interface eth0 
+static ip_address=10.8.30.197/24 
+static routers=10.8.30.1 
+static domain_name_servers=114.114.114.114 223.5.5.5 223.6.6.6 
+
+#设置密码
+passwd pi
+
+PasswordAuthentication yes
+
+systemctl enable ssh
+```
+
+安装mosquitto
+
+```shell
+wget http://repo.mosquitto.org/debian/mosquitto-repo.gpg.key
+
+sudo apt-key add mosquitto-repo.gpg.key
+
+# sudo wget -P /etc/apt/sources.list.d/ http://repo.mosquitto.org/debian/mosquitto-jessie.list
+# sudo wget -P /etc/apt/sources.list.d/ http://repo.mosquitto.org/debian/mosquitto-stretch.list
+sudo wget -P /etc/apt/sources.list.d/ http://repo.mosquitto.org/debian/mosquitto-buster.list 
+
+apt-get update
+
+apt-get install mosquitto
+
+systemctl status mosquitto
+```
+
+
+
+#### [安装docker](https://peppe8o.com/setup-a-docker-environment-with-raspberry-pi-os-lite-and-portainer/)
+
+<img src="imgs/KubeEdge/raspberry-pi-docker-portainer-featured-image.jpg" width="100" align="left"/>
+
+```shell
+sudo apt-get update && sudo apt-get upgrade
+
+curl -fsSL https://get.docker.com -o get-docker.sh
+
+sudo sh get-docker.sh
+
+sudo docker version
+
+sudo docker run hello-world
+
+sudo usermod -aG docker pi
+
+```
+
+
+
+
+
+#### [安装containerd](https://docs.docker.com/engine/install/debian/)
+
+[Setting different container runtime with CRI](https://docs.kubeedge.io/en/docs/advanced/cri/)
+
+
+
+修改`/etc/apt/sources.list`
+
+```shell
+deb http://mirrors.163.com/raspbian/raspbian/ buster main contrib non-free rpi
+# Uncomment line below then 'apt-get update' to enable 'apt-get source'
+#deb-src http://raspbian.raspberrypi.org/raspbian/ buster main contrib non-free rpi
+```
+
+安装
+
+```shell
+ sudo apt-get update
+ sudo apt-get install \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release
+    
+curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+ echo \
+  "deb [arch=armhf signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  
+ sudo apt-get update
+ sudo apt-get install containerd.io
+```
+
+
+
+```shell
+# Configure containerd
+mkdir -p /etc/containerd
+containerd config default > /etc/containerd/config.toml
+
+# Restart containerd
+systemctl restart containerd
+```
+
+
+
+安装golang
+
+```shell
+sudo apt update
+sudo apt full-upgrade
+
+wget https://dl.google.com/go/go1.16.6.linux-armv6l.tar.gz -O go.tar.gz
+
+```
+
+
+
+
+
+#### 配置运行EdgeCore
+
+配置EdgeCore.yaml支持containerd.。 默认cgroup 配置是 cgroupfs。
+
+```yaml
+remoteRuntimeEndpoint: unix:///var/run/containerd/containerd.sock
+remoteImageEndpoint: unix:///var/run/containerd/containerd.sock
+runtimeRequestTimeout: 2
+podSandboxImage: k8s.gcr.io/pause:3.2
+runtimeType: remote
+```
+
+配置
+
+```yaml
+
+```
+
+启动：
+
+![image-20210721161810471](imgs/KubeEdge/image-20210721161810471.png)
+
+问题
+
+1. Cgroup subsystem not mounted:[memory]
+
+   ```shell
+   Following Cgroup subsystem not mounted: [memory]
+   ```
+
+   https://zhuanlan.zhihu.com/p/384443481
+
+   ```shell
+   #解决问题
+   #修改/boot/cmdline.txt
+   sudo vim /boot/cmdline.txt
+   cgroup_enable=memory cgroup_memory=1
+   添加在同一行的最后面,接着内容后空格后添加, 注意:不要换行添加
+   
+   #重启机器配置生效
+   reboot
+   ```
+
+2. 
+
+
+
+## 配置
+
+### 云端
+
+设置边缘端自动注册 modules.edged.registerNode=true。 或者使用[手动注册](https://kubeedge.io/en/docs/setup/config/)。
+
+
+
+### 边端
+
+#### 设置基础镜像：
+
+```sh
+modules.edged.podSandboxImage
+```
+
+检查机器架构：
+
+```shell
+getconf LONG_BIT
+```
+
++ `kubeedge/pause-arm:3.1` **for** arm arch
++ `kubeedge/pause-arm64:3.1` **for** arm64 arch 
++ `kubeedge/pause:3.1` **for** x86 arch
+
+#### 容器运行时
+
+```yaml
+runtimeType: docker
+```
+
+or
+
+```yaml
+runtimeType: remote
+```
+
+#### MQTT模式
+
+MQTT用于DeviceTwin和Devices之间的通信，支持3中MQTT模式：
+
+0 internalMqttMode 内部MQTT代理使能
+
+1 bothMqttMonde 内部和外部MQTT代理均使能
+
+2 externalMqttMode 外部代理使能
+
+
+
+
+
+## EdgeMesh
+
+云端和边缘之间发生网络问题，集成EdgeMesh 支持DNS访问
+
+```shell
+grep hosts /etc/nsswitch.conf
+hosts:          dns file mdns4_minimal # 确保dns在第一位
+```
+
+**IP Forward**设置
+
+```shell
+$ sudo echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.conf
+$ sudo sysctl -p
+#check
+$ sudo sysctl -p | grep ip_forward
+net.ipv4.ip_forward = 1
+```
+
+部署一个nginx例子
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+          hostPort: 8050
+```
+
+`kubeclt apply -f pod-nginx.yaml`
+
+![image-20210713171944426](imgs/KubeEdge/image-20210713171944426.png)
+
+按照官网例子访问容器ip curl 10.0.35.3:8050，无法访问，直接访问http://10.8.30.35:8050 可以。
+
+创建一个服务：
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-svc
+  namespace: default
+spec:
+  clusterIP: None
+  selector:
+    app: nginx
+  ports:
+    - name: http-0
+      port: 18050
+      protocol: TCP
+      targetPort: 80
+```
+
+![image-20210713174342754](imgs/KubeEdge/image-20210713174342754.png)
+
+在边缘端访问： `<service_name>.<service_namespace>.svc.<cluster>.<local>:<port>`
+
+curl http://nginx-svc.default.svc.cluster.local:18050
+
+
+
+## 开发指南
+
+### Device Model 设备原型
+
+KubeEdge支持通过Kubernetes CRDS，以及Device Mapper进行设备管理
+
+```yaml
+apiVersion: devices.kubeedge.io/v1alpha2
+kind: DeviceModel
+metadata:
+ name: sensor-tag-model
+ namespace: default
+spec:
+ properties:
+  - name: temperature
+    description: temperature in degree celsius
+    type:
+     int:
+      accessMode: ReadWrite
+      maximum: 100
+      unit: degree celsius
+  - name: temperature-enable
+    description: enable data collection of temperature sensor
+    type:
+      string:
+        accessMode: ReadWrite
+        defaultValue: 'OFF'
+```
+
+### Device Instance
+
+```yaml
+apiVersion: devices.kubeedge.io/v1alpha2
+kind: Device
+metadata:
+  name: sensor-tag-instance-01
+  labels:
+    description: TISimplelinkSensorTag
+    manufacturer: TexasInstruments
+    model: CC2650
+spec:
+  deviceModelRef:
+    name: sensor-tag-model
+  protocol:
+    modbus:
+      slaveID: 1
+    common:
+      com:
+        serialPort: '1'
+        baudRate: 115200
+        dataBits: 8
+        parity: even
+        stopBits: 1
+      customizedValues: # 自定义属性值
+        def1: def1-val
+        def2: def2-val
+  nodeSelector:
+    nodeSelectorTerms:
+    - matchExpressions:
+      - key: ''
+        operator: In
+        values:
+        - node1
+  propertyVisitors:
+    - propertyName: temperature
+      modbus:
+        register: CoilRegister
+        offset: 2
+        limit: 1
+        scale: 1
+        isSwap: true
+        isRegisterSwap: true
+    - propertyName: temperature-enable
+      modbus:
+        register: DiscreteInputRegister
+        offset: 3
+        limit: 1
+        scale: 1.0
+        isSwap: true
+        isRegisterSwap: true
+    - propertyName: temperature # 自定义协议写法
+      collectCycle: 500000000
+      reportCycle: 1000000000
+      customizedProtocol:
+        protocolName: MY-TEST-PROTOCOL
+        configData:
+          def1: def1-val
+          def2: def2-val
+          def3:
+            innerDef1: idef-val
+status:
+  twins:
+    - propertyName: temperature
+      reported:
+        metadata:
+          timestamp: '1550049403598'
+          type: int
+        value: '10'
+      desired:
+        metadata:
+          timestamp: '1550049403598'
+          type: int
+        value: '15'
+data: # 定义通过mappers上报到边缘端MQTT代理的一系列时序属性
+  dataTopic: "$ke/events/device/+/data/update"
+  dataProperties: 
+    - propertyName: pressure
+      metadata:
+        type: int
+    - propertyName: temperature
+      metadata:
+        type: int
+```
+
+### Device Mapper
+
+是连接和控制设备的应用程序，包含功能：
+
+1) 扫描和连接设备
+
+2) 报告设备孪生属性（ twin-attributes）的真实状态
+
+3) 转换预期状态到真实状态
+
+4) 采集遥感数据
+
+5) 将设备的读取转换成KubeEdge可以接受的格式
+
+6) 安排设备上的动作(schedule)
+
+7) 检查设备的健康状态
+
+![img](imgs/KubeEdge/mapper-design.png)
+
+### 创建步骤
+
+1. kubectl apply -f <path to device model yaml>
+2. kubectl apply -f <path to device instance yaml>
+3. 执行基于指定协议的mapper程序
+4. 改变设备实例yaml中的状态段,应用改变将影响边缘端，通过设备控制和设备孪生组件（DeviceController和DeviceTwin）
+5. 边缘端的mapper进程上报设备孪生的数据，并通过DeviceController同步回云端。
+
+
+
+### Router Manager 路由管理
+
+通过CRDs和Router模块，基于mqtt，实现云边消息通信。 控制用户数据的传输，一次传输的大小不超过12M。
+
+使用场景：
+
++ 通过云端api发布自定义消息，最终到达终端mqtt代理
++ 边缘发布消息到mqtt代理，最终通过RESTApi返回云端
++ 通过云端api发布自定义消息，最终调用边缘rest api传送消息
+
+#### 规则的定义
+
+RuleEndpoint 和 Rule Definition:
+
++ RuleEndpoint 定义消息从哪里来的、或到哪里去，包括3中类型
+  + rest
+  + eventbus (MQTT)
+  + servicebus (边缘端的Rest Api应用)
++ Rule 定义从源Endpoint到目标Endpoint消息传输的方式，包含3中类型：
+  + rest->eventbus :  cloud api --> edge mqtt
+  + eventbus->rest: edge mqtt --> cloud api
+  + rest->servicebus: cloud api --> user's app
+
+RuleEndpoint定义
+
+```yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: ruleendpoints.rules.kubeedge.io
+spec:
+  group: rules.kubeedge.io
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                ruleEndpointType:
+                  type: rest/eventbus/servicebus
+              required:
+                - ruleEndpointType
+  scope: Namespaced
+  names:
+    plural: ruleendpoints
+    singular: ruleendpoint
+    kind: RuleEndpoint
+    shortNames:
+      - re
+```
+
+Rule定义：
+
+```yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: rules.rules.kubeedge.io
+spec:
+  group: rules.kubeedge.io
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                source:
+                  type: string
+                  value: my-rest
+                sourceResource:
+                  description: {"path":"/a/b"} 或 {"topic":"<user define string>","node_name":"edge-node"}
+                  type: object
+                  additionalProperties:
+                    type: string
+                target:
+                  type: string
+                  value: my-eventbus
+                targetResource:
+                  description: {"topic":"/test"}
+                  type: object
+                  additionalProperties:
+                    type: string
+              required:
+                - source
+                - sourceResource
+                - target
+                - targetResource
+            status:
+              type: object
+              properties:
+                successMessages:
+                  type: integer
+                failMessages:
+                  type: integer
+                errors:
+                  items:
+                    type: string
+                  type: array
+  scope: Namespaced
+  names:
+    plural: rules
+    singular: rule
+    kind: Rule
+```
+
+
+
+### [发消息的步骤](https://docs.kubeedge.io/en/docs/developer/custom_message_deliver/)
+
+以rest->eventbus 模式举例
+
+1. 云端配置 router模块使能
+
+2. 创建ruleEndpoint
+
+3. 创建rule
+
+   ```yaml
+   apiVersion: rules.kubeedge.io/v1
+   kind: Rule
+   metadata:
+     name: my-rule
+     labels:
+       description: test
+   spec:
+     source: "my-rest"
+     sourceResource: {"path":"/test"}
+     target: "my-eventbus"
+     targetResource: {"topic":"test"}
+   ```
+
+4. 云端调用api接口发送消息
+
+   ```shell
+   POST
+   http://{cloudcore_ip}:9443/{node_name}/{namespace}/{path}
+   ```
+
+   
+
+5. 边缘订阅
+
+   ```shell
+   mosquitto_sub -t 'test' -d
+   ```
+
+
+
+MORE：
+
+人工智能、数字孪生、边缘计算、量子计算、沉浸式技术、区块链、智能空间、5G

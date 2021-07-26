@@ -61,6 +61,20 @@ npm i --legacy-peer-deps
 npm install
 ```
 
+2. cb() never called
+
+   ```shell
+   npm cache clean -force
+   rm -rf node_modules
+   npm config rm proxy
+   npm config rm https-proxy
+   # 升级node
+   ```
+
+   
+
+3. 
+
 
 
 ## 开发
@@ -85,6 +99,160 @@ $ yarn add @umijs/preset-ui -D
 $ UMI_UI=1 umi dev
 
 ```
+
+
+
+### 开发
+
+#### 登录界面 
+
+`src\pages\User\login\index.jsx`
+
+要点：
+
++ 大致的新增一个页面的流程
+
+  1. config/route.js
+
+     ```js
+     path: '/',
+         component: '../layouts/BlankLayout',
+             routes: [
+                 {
+                     path: '/user',
+                     component: '../layouts/UserLayout',
+                     routes: [
+                         {
+                             name: 'login',
+                             path: '/user/login',
+                             component: './User/login',
+                         },
+                     ],
+                 }
+     ```
+
+     
+
+  2. Layout实现（这里可以用脚手架现成的）
+
+     + BlankLayout 
+
+       提供V8引擎的代码检查工具
+
+       ```tsx
+       import { Inspector } from 'react-dev-inspector';
+       const InspectorWrapper = process.env.NODE_ENV === 'development' ? Inspector : React.Fragment;
+       <InspectorWrapper>{children}</InspectorWrapper>
+       ```
+
+     + SecurityLayout
+
+       鉴权检查层
+
+     + UserLayout 用户登录布局
+
+     + BasicLayout 基础布局（其他页面）
+
+  3. 
+
+- `[state, setState] = useState(initialValue)`返回一个包含`2`个元素的数组:状态值和状态更新函数。
+- {condition && ()} 判断条件和组件输出
+
+```js
+{type === 'account' && (
+    <>
+    	...
+    </>
+}
+```
+
++ 国际化 （不重要啦）
+
+  ```js
+  import { useIntl, connect, FormattedMessage } from 'umi';
+  const intl = useIntl();
+  placeholder={intl.formatMessage({
+               id: 'pages.login.username.placeholder',
+               defaultMessage: 'Username: admin or user',
+              })}
+  <FormattedMessage
+  id="pages.login.username.required"
+  defaultMessage="Please enter user name!"
+  />
+  ```
+
+  
+
++ antd [TAB](https://ant.design/components/tabs-cn/)控件
+
+  ```html
+   <Tabs activeKey={type} onChange={setType}>
+            <Tabs.TabPane
+              key="account"
+              tab="账户登录"
+            />
+            <Tabs.TabPane
+              key="mobile"
+              tab="手机号登录"
+            />
+  </Tabs>
+  ```
+
+  
+
++ 快速React 组件编写
+
+  ```html
+  const LoginMessage = ({ content }) => (
+    <Alert
+      style={{
+        marginBottom: 24,
+      }}
+      message={content}
+      type="error"
+      showIcon
+    />
+  );
+  ```
+
+  
+
++ pro组件 [ProFormText](https://procomponents.ant.design/components/field-set)
+
+  是FormItem+Input的产物，可以简单类比为一下代码
+
+  ```tsx
+  const ProFormText = (props) => {
+    return (
+      <ProForm.Item {...props}>
+        <Input placeholder={props.placeholder} {...props.fieldProps} />
+      </ProForm.Item>
+    );
+  };
+  ```
+
+  使用例子：
+
+  ```tsx
+  <ProFormText.Password
+      name="password"
+      fieldProps={{
+          size: 'large',
+          prefix: <LockOutlined className={styles.prefixIcon} />,
+      }}
+      placeholder="输入密码"
+      rules={[
+          {
+              required: true,
+              message: "密码不能为空",
+          },
+      ]}
+  />
+  ```
+
+  
+
++ s
 
 
 
@@ -270,6 +438,12 @@ nohup node api/server.js -p 9080 -g mysql://root:Aliyun123_@localhost:3306/db > 
 
 
 > 以下内容为其他技术的学习笔记，比较零散，后续总结归档
+
+## Module
+
+### ahooks
+
+
 
 ## DvaJS
 
@@ -894,3 +1068,7 @@ Pass: yww0828@126.com
 复制链接到profile中进行download。
 
 到proxies中选择代理节点。点击猫头重启
+
+## 资源
+
+svg资源下载 https://commons.wikimedia.org/wiki
