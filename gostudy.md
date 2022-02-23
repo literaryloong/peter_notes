@@ -1,3 +1,7 @@
+下载：https://go.dev/dl/ 或者 在 goland中GO> GOROOT > + > Download中下载（默认下载到c:\users\xx\go\go1.16目录下）
+
+
+
 # Day 1
 
 
@@ -35,7 +39,8 @@ GOPATH :  go程序所在的位置
 
 `提示缺少gcc`，需要安装 [mingw-w64-install.exe](www.baidu.com)
 
-## IDE 
+## IDE
+
 ### GOLAND
 
 [pojie2020](\\10.8.30.117\h\安装文件)
