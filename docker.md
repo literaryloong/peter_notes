@@ -1,3 +1,77 @@
+## Docker-Compose命令
+
+https://docs.docker.com/engine/reference/commandline
+
+```
+docker-compose pull
+docker-compose up
+
+docker-compose create --force-recreate foxapi
+
+docker compose up [OPTIONS] [SERVICE...]
+ 
+Name, shorthand	Default	Description
+--abort-on-container-exit		Stops all containers if any container was stopped. Incompatible with -d
+--always-recreate-deps		Recreate dependent containers. Incompatible with --no-recreate.
+--attach		Attach to service output.
+--attach-dependencies		Attach to dependent containers.
+--build		Build images before starting containers.
+--detach , -d		Detached mode: Run containers in the background
+--exit-code-from		Return the exit code of the selected service container. Implies --abort-on-container-exit
+--force-recreate		Recreate containers even if their configuration and image haven't changed.
+--no-build		Don't build an image, even if it's missing.
+--no-color		Produce monochrome output.
+--no-deps		Don't start linked services.
+--no-log-prefix		Don't print prefix in logs.
+--no-recreate		If containers already exist, don't recreate them. Incompatible with --force-recreate.
+--no-start		Don't start the services after creating them.
+--pull	missing	Pull image before running ("always"|"missing"|"never")
+--quiet-pull		Pull without printing progress information.
+--remove-orphans		Remove containers for services not defined in the Compose file.
+--renew-anon-volumes , -V		Recreate anonymous volumes instead of retrieving data from the previous containers.
+--scale		Scale SERVICE to NUM instances. Overrides the scale setting in the Compose file if present.
+--timeout , -t	10	Use this timeout in seconds for container shutdown when attached or when containers are already running.
+--wait		Wait for services to be running|healthy. Implies detached mode.
+
+# 移除指定服务的volume
+docker-compose rm -s -v yourService
+
+# 删除volumne
+docker-compose down -v
+
+# # Stop and remove container's using the target volume
+docker-compose stop NAME_OF_CONTAINER
+
+# We need the force flag, "-f", as the container is still bound to the volume
+docker-compose rm -f NAME_OF_CONTAINER
+
+# Next find your volume name in the following list
+docker volume ls
+
+# Finally remove the volume
+docker volume rm VOLUME_NAME
+```
+
+
+
+port:
+
+```sh
+ports:
+ - "3000"
+ - "3000-3005"
+ - "8000:8000"
+ - "9090-9091:8080-8081"
+ - "49100:22"
+ - "127.0.0.1:8001:8001"
+ - "127.0.0.1:5000-5010:5000-5010"
+ - "6060:6060/udp"
+```
+
+
+
+
+
 ## 安装
 
 我的ucloudmima是 FS12345678
